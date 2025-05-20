@@ -1527,6 +1527,26 @@ jQuery(async () => {
                                 position: relative;
                                 box-shadow: 0 1px 2px rgba(0,0,0,0.2);
                                 word-break: break-word;
+                                text-align: left !important; /* 强制左对齐 */
+                            }
+                            
+                            /* 确保消息内部所有元素都左对齐 */
+                            .message_box * {
+                                text-align: left !important; /* 强制所有子元素左对齐 */
+                            }
+                            
+                            /* 确保段落左对齐 */
+                            .message_box p {
+                                text-align: left !important;
+                                margin: 0 0 10px 0;
+                            }
+                            
+                            /* 确保Markdown生成的标签也左对齐 */
+                            .message_box strong, 
+                            .message_box em,
+                            .message_box span,
+                            .message_box div {
+                                text-align: left !important;
                             }
                             
                             .user_message {
@@ -1606,9 +1626,6 @@ jQuery(async () => {
                             messagesContainer.appendChild(messageDiv);
                         });
                         
-                        // 使用 SillyTavern 的 Popup 类：
-                        import { POPUP_TYPE, Popup } from '../../../popup.js';
-
                         // 在点击事件处理函数中使用：
                         const popup = new Popup(previewContainer, POPUP_TYPE.DISPLAY, '', {
                             wide: true,
@@ -1809,6 +1826,8 @@ function processMessage(messageText) {
         return '(空消息)';
     }
     
+    if (!messageText) return '(空消息)';
+    
     // 过滤<think>和<thinking>标签及其内容
     let processed = messageText
         .replace(/<think>[\s\S]*?<\/think>/g, '')
@@ -1818,6 +1837,31 @@ function processMessage(messageText) {
     processed = processed
         .replace(/```[\s\S]*?```/g, '[代码块]')
         .replace(/`[\s\S]*?`/g, '[内联代码]');
+    
+    // 处理连续空行和空白问题
+    processed = processed
+        // 替换连续空行为单个换行
+        .replace(/\n\s*\n\s*\n+/g, '\n\n')
+        // 去除开头和结尾的空白
+        .trim()
+        // 替换连续多个空格为单个空格
+        .replace(/ {2,}/g, ' ');
+    
+    // 简单的Markdown处理，保留部分格式
+    processed = processed
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')  // 粗体
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')              // 斜体
+        // 使用更好的换行处理：单个换行转为<br>，两个换行转为段落分隔
+        .replace(/\n\n+/g, '</p><p class="message-paragraph">')  // 两个及以上换行替换为段落分隔
+        .replace(/\n/g, '<br>');                           // 单个换行替换为<br>
+    
+    // 确保内容被段落包围
+    if (!processed.startsWith('<p')) {
+        processed = `<p class="message-paragraph">${processed}`;
+    }
+    if (!processed.endsWith('</p>')) {
+        processed = `${processed}</p>`;
+    }
     
     return processed;
 }
