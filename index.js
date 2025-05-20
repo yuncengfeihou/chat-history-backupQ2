@@ -1340,7 +1340,7 @@ jQuery(async () => {
                 });
 
                 if (backup) {
-                    if (confirm(`确定要恢复 " ${backup.entityName} - ${backup.chatName} " 的备份吗？\n\n这将选中对应的角色/群组，并创建一个【新的聊天】来恢复备份内容。\n\n当前聊天内容不会丢失，但请确保已保存。`)) {
+                    if (confirm(`确定要恢复 " ${backup.entityName} - ${backup.chatName} " 的备份吗？\n\n插件将自动接管酒馆，并选中对应的角色/群组，并创建一个【新的聊天】来恢复备份内容。\n\n不论原有聊天记录是否存在，该备份恢复都不会影响任何原有的聊天记录，该备份也不会因为恢复备份而被删除，请勿担心。`)) {
                         await restoreBackup(backup);
                     } else {
                          // 用户取消确认对话框
