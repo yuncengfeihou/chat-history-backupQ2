@@ -35,6 +35,10 @@ import {
     select_group_chats,     // 用于选择群组聊天
 } from '../../../group-chats.js';
 
+import { POPUP_TYPE, 
+Popup,
+} from '../../../popup.js';
+
 // --- 备份类型枚举 ---
 const BACKUP_TYPE = {
     STANDARD: 'standard', // 用于 AI 回复, 用户发送, 新swipe生成
