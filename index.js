@@ -35,8 +35,6 @@ import {
     select_group_chats,     // 用于选择群组聊天
 } from '../../../group-chats.js';
 
-import { POPUP_TYPE, Popup } from '../../../popup.js';
-
 // --- 备份类型枚举 ---
 const BACKUP_TYPE = {
     STANDARD: 'standard', // 用于 AI 回复, 用户发送, 新swipe生成
@@ -1471,47 +1469,148 @@ jQuery(async () => {
                         // 创建样式
                         const style = document.createElement('style');
                         style.textContent = `
-                            .message_box {
-                                padding: 10px;
-                                margin-bottom: 10px;
-                                border-radius: 8px;
-                                max-width: 80%;
-                            }
-                            .user_message {
-                                background-color: #e1f5fe;
-                                margin-left: auto;
-                            }
-                            .assistant_message {
-                                background-color: #f5f5f5;
-                                margin-right: auto;
-                            }
                             .preview_container {
                                 display: flex;
                                 flex-direction: column;
-                                gap: 10px;
-                                padding: 10px;
-                                max-height: 400px;
+                                padding: 0;
+                                max-height: 80vh;
+                                width: 100%;
+                                background-color: #f9f9f9;
+                                border-radius: 12px;
+                                overflow: hidden;
+                            }
+                            
+                            .preview_header {
+                                background: linear-gradient(135deg, #3a6186, #89253e);
+                                color: white;
+                                padding: 15px 20px;
+                                border-bottom: 1px solid #ddd;
+                            }
+                            
+                            .preview_header h3 {
+                                margin: 0 0 10px 0;
+                                text-align: center;
+                                font-size: 1.5em;
+                            }
+                            
+                            .preview_metadata {
+                                display: flex;
+                                justify-content: space-between;
+                                font-size: 0.9em;
+                                flex-wrap: wrap;
+                            }
+                            
+                            .meta_label {
+                                font-weight: bold;
+                                opacity: 0.8;
+                            }
+                            
+                            .messages_container {
+                                display: flex;
+                                flex-direction: column;
+                                padding: 20px;
+                                gap: 15px;
+                                overflow-y: auto;
+                                max-height: calc(80vh - 100px);
+                                background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAABmJLR0QA/wD/AP+gvaeTAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAB3RJTUUH4AsEBR0P/P1PagAAAF5JREFUaN7t2CEOgEAQBMFB8P8/yxNgkQgMghyJqqqk6zY13W9Mktzs4DcAAADgGDMzM6/PIpKkUm4VkSSVq0hEV4SI7gZELggAAEBEQAAAAAACAgAAlKvc7JcJz20oNukgS4MAAAAASUVORK5CYII=');
+                            }
+                            
+                            .message_box {
+                                padding: 15px;
+                                border-radius: 18px;
+                                max-width: 75%;
+                                color: white;
+                                position: relative;
+                                box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                                word-break: break-word;
+                            }
+                            
+                            .user_message {
+                                background-color: #8A2BE2;
+                                align-self: flex-end;
+                                border-bottom-right-radius: 4px;
+                                margin-left: 25%;
+                            }
+                            
+                            .assistant_message {
+                                background-color: #FFA500;
+                                align-self: flex-start;
+                                border-bottom-left-radius: 4px;
+                                margin-right: 25%;
+                            }
+                            
+                            .user_message::after {
+                                content: '';
+                                position: absolute;
+                                bottom: 0;
+                                right: -10px;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #8A2BE2;
+                                border-bottom-left-radius: 16px;
+                                z-index: -1;
+                            }
+                            
+                            .assistant_message::after {
+                                content: '';
+                                position: absolute;
+                                bottom: 0;
+                                left: -10px;
+                                width: 20px;
+                                height: 20px;
+                                background-color: #FFA500;
+                                border-bottom-right-radius: 16px;
+                                z-index: -1;
                             }
                         `;
                         document.head.appendChild(style);
                         
-                        // 创建预览容器
+                        // 创建预览容器，修改为flex布局的主容器
                         const previewContainer = document.createElement('div');
                         previewContainer.className = 'preview_container';
-                        
-                        // 添加消息
+
+                        // 添加一个包含详细信息的标题区域
+                        const headerSection = document.createElement('div');
+                        headerSection.className = 'preview_header';
+
+                        // 获取时间戳和实体名称信息
+                        const timestamp = new Date(backup.timestamp).toLocaleString();
+                        const entityName = backup.entityName || '未知角色/群组';
+                        const messagesCount = backup.lastMessageId + 1; // +1因为lastMessageId是索引
+
+                        headerSection.innerHTML = `
+                            <h3>聊天记录预览</h3>
+                            <div class="preview_metadata">
+                                <div><span class="meta_label">来自:</span> ${entityName}</div>
+                                <div><span class="meta_label">消息数:</span> ${messagesCount}</div>
+                                <div><span class="meta_label">备份时间:</span> ${timestamp}</div>
+                            </div>
+                        `;
+
+                        previewContainer.appendChild(headerSection);
+
+                        // 创建消息容器，作为主容器的子元素
+                        const messagesContainer = document.createElement('div');
+                        messagesContainer.className = 'messages_container';
+                        previewContainer.appendChild(messagesContainer);
+
+                        // 将消息添加到消息容器中，而不是主容器
                         lastMessages.forEach((msg, index) => {
                             const messageDiv = document.createElement('div');
                             messageDiv.className = `message_box ${index % 2 === 0 ? 'user_message' : 'assistant_message'}`;
-                            // 检查消息格式并访问正确的属性
                             messageDiv.innerHTML = processMessage(msg.mes || msg);
-                            previewContainer.appendChild(messageDiv);
+                            messagesContainer.appendChild(messageDiv);
                         });
+                        
+                        // 使用 SillyTavern 的 Popup 类：
+                        import { POPUP_TYPE, Popup } from '../../../popup.js';
 
                         // 在点击事件处理函数中使用：
                         const popup = new Popup(previewContainer, POPUP_TYPE.DISPLAY, '', {
                             wide: true,
-                            allowVerticalScrolling: true
+                            large: true,
+                            allowVerticalScrolling: false, // 因为我们已经在messages_container中实现了滚动
+                            transparent: true // 移除弹窗的默认背景，使用我们自定义的背景
                         });
                         await popup.show();
                     }
@@ -1699,3 +1798,22 @@ jQuery(async () => {
         }, 3000); // 3秒后如果仍未初始化，则强制初始化
     }
 });
+
+function processMessage(messageText) {
+    // 确保是字符串
+    if (typeof messageText !== 'string') {
+        return '(空消息)';
+    }
+    
+    // 过滤<think>和<thinking>标签及其内容
+    let processed = messageText
+        .replace(/<think>[\s\S]*?<\/think>/g, '')
+        .replace(/<thinking>[\s\S]*?<\/thinking>/g, '');
+    
+    // 过滤代码块
+    processed = processed
+        .replace(/```[\s\S]*?```/g, '[代码块]')
+        .replace(/`[\s\S]*?`/g, '[内联代码]');
+    
+    return processed;
+}
